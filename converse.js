@@ -116,7 +116,7 @@ app.use(function(req, res, next) {
   res.locals.user = req.user || null;
   next();
 });
-app.use( require('provide') );
+app.use( require('./lib/provide') );
 
 app.resources = {};
 var resource = {
