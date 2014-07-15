@@ -72,7 +72,6 @@ maki.angular.config(function($routeProvider, $locationProvider, $resourceProvide
   // use the HTML5 History API
   $locationProvider.html5Mode(true);
 });
-/**/
 
 maki.angular.controller('mainController', function( $scope ) {
   $scope.$on('$locationChangeSuccess', function(event) {

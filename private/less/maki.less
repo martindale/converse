@@ -6,12 +6,25 @@ body {
   padding-bottom: 20px;
 }
 
-/* size limiters */
-.media-list img,
-.size-5 {
-  max-height: 5em;
-  max-width: 5em;
+.bordered {
+  border: 0.35em solid @brand-primary;
 }
+
+/* size limiters */
+.size-5 {
+  @emsize: 5em;
+
+  max-height: @emsize;
+  max-width: @emsize;
+
+  .bordered;
+}
+
+.size-5.rounded {
+  .bordered;
+  border-radius: 5em;
+}
+
 .size-10 {
   max-height: 10em;
   max-width: 10em;
