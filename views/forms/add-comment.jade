@@ -21,4 +21,6 @@ form.ui.form#comment(action="/comments", method="post")
           | markdown enabled
     textarea(name="content", required)
   .right.floated
-    button.ui.submit.button Add Comment &raquo;
+    button.ui.submit.button.primary
+      i.comments.icon
+      | Add Comment &raquo;
