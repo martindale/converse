@@ -6,9 +6,5 @@ block content
 
     .ui.fluid.card
       .content
-        if (user)
-          h3 New Post
-          include forms/new-post
-        else
-          p For now, we require a user account to participate.
-          include forms/register
+        h3 New Post
+        include forms/new-post

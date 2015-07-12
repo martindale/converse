@@ -12,11 +12,11 @@ block content
             abbr.date.tooltipped(title="#{ moment( comment.created ).format('MMMM Do YYYY, h:mm:ss a') }") #{ moment( comment.created ).fromNow() }
           | by 
           a.user(href="/people/#{comment._author.slug}") #{comment._author.username}
-        .description !{ markdown(comment.content || '') }
+        .description(style="clear: none;") !{ markdown(comment.content || '') }
       .extra.content
         a(href="/posts/#{post._id}#comment#{comment._id}")
           i.comment.icon
-          | 123 comments
+          | #{comment.stats.comments || 0} comments
           
     for comment in comments
       .ui.fluid.card(style="margin-left: 2.5em;")
@@ -27,7 +27,7 @@ block content
               abbr.date.tooltipped(title="#{ moment( comment.created ).format('MMMM Do YYYY, h:mm:ss a') }") #{ moment( comment.created ).fromNow() }
             | by 
             a.user(href="/people/#{comment._author.slug}") #{comment._author.username}
-          .description !{ markdown(comment.content || '') }
+          .description(style="clear: none;") !{ markdown(comment.content || '') }
         .extra.content
           a(href="/posts/#{post._id}#comment#{comment._id}")
             i.comment.icon
