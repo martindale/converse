@@ -18,7 +18,10 @@ mixin PostView(post, maxWords)
         a(href="/posts/#{post._id}")
           abbr.date.tooltipped(title="#{ moment( post.created ).format('MMMM Do YYYY, h:mm:ss a') }") #{ moment( post.created ).fromNow() }
         | by 
-        a.user(href="/people/#{post._author.slug}") #{post._author.username}
+        if (post._author)
+          a.user(href="/people/#{post._author.slug}") #{post._author.username}
+        else
+          span.user #{post.username || 'anonymous'}
       if (!~maxWords)
         .description(style="clear: none;") #{ post.description.split('\n')[0].split(' ').slice(0, maxWords).join(' ') }&hellip;
           a(href="/posts/#{post._id}") Read More &raquo;

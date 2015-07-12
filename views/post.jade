@@ -9,12 +9,8 @@ block content
     if (comments.length >= 3)
       .ui.fluid.card
         .content
-          if (user)
-            include forms/add-comment
-          else
-            p For now, we require a user account to participate.
-            include forms/register
-            
+          include forms/add-comment
+  
     h5 Only showing top-level comments.  To see a thread, click "reply".
 
     for comment in comments
@@ -32,8 +28,12 @@ block content
             a(href="/posts/#{post._id}#comment#{comment._id}")
               abbr.date.tooltipped(title="#{ moment( comment.created ).format('MMMM Do YYYY, h:mm:ss a') }") #{ moment( comment.created ).fromNow() }
             | by 
-            a.user(href="/people/#{comment._author.slug}") #{comment._author.username}
-          .description !{ markdown(comment.content || '') }
+            if (comment._author)
+              a.user(href="/people/#{comment._author.slug}") #{comment._author.username}
+            else
+              span.user #{post.username || 'anonymous'}
+              
+          .description(style="clear: none;") !{ markdown(comment.content || '') }
         .extra.content
           a(href="/posts/#{post._id}#comment#{comment._id}")
             i.comment.icon
@@ -44,8 +44,4 @@ block content
 
     .ui.fluid.card
       .content
-        if (user)
-          include forms/add-comment
-        else
-          p For now, we require a user account to participate.
-          include forms/register
+        include forms/add-comment

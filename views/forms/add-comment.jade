@@ -1,16 +1,24 @@
 form.ui.form#comment(action="/comments", method="post")
-  input(type="hidden", name="_author", value="#{user._id}")
+  if (user)
+    input(type="hidden", name="_author", value="#{user._id}")
   input(type="hidden", name="_post", value="#{post._id}")
 
   if (comment)
     input(type="hidden", name="_parent", value="#{comment._id}")
-    
+  
   .field
+    label Username
+    if (user)
+      input(name="username", value="#{user.username}")
+    else
+      input(name="username")
+  
+  .field.required
     label Comment
       .right.floated
         abbr.tooltipped(title="You can use things like **bold** or _italic_, and even [links](http://foo).")
           i.font.icon
           | markdown enabled
-    textarea(name="content")
+    textarea(name="content", required)
   .right.floated
     button.ui.submit.button Add Comment &raquo;

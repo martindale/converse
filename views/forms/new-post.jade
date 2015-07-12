@@ -1,6 +1,13 @@
 form.ui.form(action="/posts", method="post")
-  input(type="hidden", name="_author", value="#{user._id}")
+  if (user)
+    input(type="hidden", name="_author", value="#{user._id}")
   input(type="hidden", name="hashcash")
+  .field
+    label Username
+    if (user)
+      input(name="username", value="#{user.username}")
+    else
+      input(name="username")
   .field
     label Link
     input(type="text", name="link", placeholder="http://...")

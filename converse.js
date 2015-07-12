@@ -40,8 +40,9 @@ converse.define('Post', {
     created:     { type: Date, required: true, default: Date.now },
     name:        { type: String, required: true, max: 200 },
     description: { type: String, required: true },
+    username:    { type: String , max: 64 },
     sticky:      { type: Boolean , default: false },
-    _author:     { type: ObjectId, required: true, ref: 'Person', populate: ['get', 'query'] },
+    _author:     { type: ObjectId, ref: 'Person', populate: ['get', 'query'] },
     //_board:      { type: ObjectId, /* required: true, */ ref: 'Board' },
     link:        { type: String },
     _object:     { type: ObjectId , ref: 'Object', populate: ['get'] },
@@ -66,12 +67,13 @@ converse.define('Post', {
 
 converse.define('Comment', {
   attributes: {
-    _author: { type: ObjectId, required: true, ref: 'Person' },
-    _post:   { type: ObjectId, required: true , ref: 'Post', populate: ['get'] },
-    _parent: { type: ObjectId, ref: 'Comment' },
-    created: { type: Date, required: true, default: Date.now },
-    updated: { type: Date },
-    content: { type: String, min: 1 }
+    username: { type: String , max: 64 },
+    _author:  { type: ObjectId, ref: 'Person' },
+    _post:    { type: ObjectId, required: true , ref: 'Post', populate: ['get'] },
+    _parent:  { type: ObjectId, ref: 'Comment' },
+    created:  { type: Date, required: true, default: Date.now },
+    updated:  { type: Date },
+    content:  { type: String, min: 1 }
   },
   requires: {
     'Comment': {
