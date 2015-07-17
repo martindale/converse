@@ -22,9 +22,15 @@ mixin PostView(post, maxWords, samePage)
       else
         .description(style="clear: none;") !{ markdown(post.description) }
     
-    .extra.content
-      code(style="word-wrap: break-word;") #{post.hashcash}
-    
+    if (post.hashcash)
+      .extra.content
+        .ui.accordion
+          .title
+            i.dropdown.icon
+            | #{post.hashcash.substring(0, 20)}&hellip;
+          .content
+            code(style="word-wrap: break-word;") #{post.hashcash}
+
     .extra.content
       a(href="/posts/#{post._id}#comments")
         i.comment.icon
