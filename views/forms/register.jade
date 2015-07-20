@@ -1,0 +1,15 @@
+form.ui.form(action="/people", method="post")
+  .field.required
+    label Username
+    input(type="text", name="username", required)
+  .field
+    label Email 
+      abbr.tooltipped(title="Email is only used in case we need to get in touch with you, like for password recovery.") (optional)
+    input(type="text", name="email")
+  .field.required
+    label Password
+    input(type="password", name="password", required)
+  .right.floated
+    button.ui.submit.button.primary
+      i.user.icon
+      | Register &raquo;

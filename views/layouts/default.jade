@@ -1,0 +1,150 @@
+doctype html
+html
+  head
+    meta(charset="utf-8")
+    meta(http-equiv="X-UA-Compatible", content="IE=edge")
+    
+    title converse
+
+    meta(name="description", content="#{ (page) ? page.title || config.service.name + ': ' + config.service.mission : config.service.name + ': ' + config.service.mission }")
+    meta(name="viewport", content="width=device-width, initial-scale=1")
+
+    link(rel="stylesheet", href="/css/semantic.min.css")
+    link(rel="stylesheet", href="/css/highlight/maki.css")
+    link(rel="stylesheet", href="/css/maki.css")
+    link(rel="stylesheet", href="http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700|Open+Sans:300italic,400,300,700")
+
+    script(src="/js/jquery.js")
+    script(src="/js/semantic.min.js")
+    script(src="/js/lodash.min.js")
+
+    script(src="/js/highlight.pack.js")
+    script(src="/js/uuid.js")
+    script(src="/js/jsonrpc.js")
+    script(src="/js/sha3.js")
+    
+    script(src="/js/maki.js")
+      
+    style.
+      .statistic i.icon {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+    base(href="/")
+
+  body
+    .ui.page.grid
+      .row
+        block navbar
+          include ../partials/navbar
+
+      .row
+        .column.content(data-for="viewport")
+        
+          include ../partials/flash
+        
+          block content
+
+      .row
+        .ui.one.column.stackable.center.aligned
+          p
+            small Built with <a href="http://github.com/martindale/maki">Maki</a> and deployed to <a href="https://www.ericmartindale.com/2015/06/01/new-chapters">the Fabric network</a>.
+          p
+            strong decentralize <em>all</em> the things.
+    
+    script.
+      $(window).load(function(e) {
+        console.log('match:', window.location.hash.match(/^#comment$/));
+        if (window.location.hash && window.location.hash.match(/^#comment$/)) {
+          e.preventDefault();
+          $('textarea').focus();
+        }
+      });
+      
+      $(document).on('click', '*[data-intent=comment]', function(e) {
+        e.preventDefault();
+        $('textarea').focus();
+      });
+      
+      String.prototype.hexEncode = function(){
+        var hex, i;
+        var result = '';
+        for (i=0; i<this.length; i++) {
+          hex = this.charCodeAt(i).toString(16);
+          result += ('000'+hex).slice(-4);
+        }
+        return result;
+      }
+
+      $('form[action="/posts"][method=post]').submit(function(e) {
+        e.preventDefault();
+        
+        $('form[action="/posts"][method=post]').addClass('loading');
+        $('form[action="/posts"][method=post] .submit').html('working...');
+        
+        var data = $(self).form('get values');
+        var cash = $('form[action="/posts"][method=post] input[name=hashcash]');
+        var name = $('form[action="/posts"][method=post] input[name=name]');
+        var input = name.val().hexEncode();
+
+        var worker = new Worker('/js/worker.js');
+        worker.onmessage = function(e) {
+          console.log('work result:', e.data);
+          var hash = e.data;
+          cash.val(hash);
+          
+          data.hashcash = hash;
+          data._author     = $('form[action="/posts"][method=post] input[name=_author]').val();
+          data.link        = $('form[action="/posts"][method=post] input[name=link]').val();
+          data.name        = $('form[action="/posts"][method=post] input[name=name]').val();
+          data.description = $('form[action="/posts"][method=post] textarea[name=description]').val();
+          
+          $.post('/posts', data, function(post, status, xhr) {
+            document.location.href = '/posts/' + post._id;
+          }, 'json');
+        }
+
+        var difficulty = 2;
+        worker.postMessage([ input , difficulty ]);
+
+        return false;
+      });
+
+      $('form[action="/comments"][method=post]').submit(function(e) {
+        e.preventDefault();
+        
+        $('form[action="/comments"][method=post]').addClass('loading');
+        $('form[action="/comments"][method=post] .submit').html('working...');
+        
+        var data = $(self).form('get values');
+        var cash = $('form[action="/comments"][method=post] input[name=hashcash]');
+        var name = $('form[action="/comments"][method=post] textarea[name=content]');
+        var input = name.val().hexEncode();
+
+        var worker = new Worker('/js/worker.js');
+        worker.onmessage = function(e) {
+          console.log('work result:', e.data);
+          var hash = e.data;
+          cash.val(hash);
+          
+          data.hashcash = hash;
+          data._author     = $('form[action="/comments"][method=post] input[name=_author]').val();
+          data.link        = $('form[action="/comments"][method=post] input[name=link]').val();
+          data._post       = $('form[action="/comments"][method=post] input[name=_post]').val();
+          data._parent     = $('form[action="/comments"][method=post] input[name=_parent]').val();
+          data.content     = $('form[action="/comments"][method=post] textarea[name=content]').val();
+          
+          $.post('/comments', data, function(post, status, xhr) {
+            // TODO: redirect/highlight specific comment that was created
+            document.location.href = '/posts/' + data._post;
+          });
+        }
+
+        var difficulty = 2;
+        worker.postMessage([ input , difficulty ]);
+
+        return false;
+      });
+
+    block scripts
