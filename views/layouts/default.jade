@@ -54,6 +54,60 @@ html
             strong decentralize <em>all</em> the things.
     
     script.
+      if ('serviceWorker' in navigator) {
+        console.log('service worker available!');
+        
+        navigator.serviceWorker.register('/service.js', {
+          scope: '/'
+        }).then(function(reg) {
+          console.log('Yey!', reg);
+        }).catch(function(err) {
+          console.log('Boo!', err);
+        });
+      }
+
+      if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+          
+          Notification
+          
+          var ws = new WebSocket('ws://localhost:9200/notifications');
+          ws.onmessage = function(msg) {
+            var message = JSON.parse(msg.data);
+            if (message.method === 'patch' && message.params.channel === '/notifications') {
+              var notification = new Notification('New message for you.');
+              notification.onclick = function() {
+                console.log('clicked');
+              };
+            }
+            
+          }
+        } else if (Notification.permission !== 'denied') {
+          Notification.requestPermission(function (permission) {
+            // If the user accepts, let's create a notification
+            if (permission === 'granted') {
+              var notification = new Notification('lol k');
+            }
+          });
+        }
+      }
+
+      // Let's check whether notification permissions have alredy been granted
+      else if (Notification.permission === "granted") {
+        // If it's okay let's create a notification
+        var notification = new Notification("Hi there!");
+      }
+
+      // Otherwise, we need to ask the user for permission
+      else if (Notification.permission !== 'denied') {
+        Notification.requestPermission(function (permission) {
+          // If the user accepts, let's create a notification
+          if (permission === "granted") {
+            var notification = new Notification("Hi there!");
+          }
+        });
+      }
+      
       $(window).load(function(e) {
         console.log('match:', window.location.hash.match(/^#comment$/));
         if (window.location.hash && window.location.hash.match(/^#comment$/)) {
