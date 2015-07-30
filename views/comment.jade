@@ -1,5 +1,34 @@
 extends layouts/default
 
+mixin commentView(comments, comment, subcomment)
+   .ui.fluid.card(style="margin-left: 2.5em;")
+        .content
+          - var item = subcomment
+          include partials/influence
+          img.right.floated.mini.ui.avatar(src="https://thecatapi.com/api/images/get?format=src&type=gif")
+          .meta
+            a(href="/posts/#{post._id}#comment#{subcomment._id}")
+              abbr.date.tooltipped(title="#{ moment( subcomment.created ).format('MMMM Do YYYY, h:mm:ss a') }") #{ moment( subcomment.created ).fromNow() }
+            | by
+            a.user(href="/people/#{subcomment._author.slug}") #{subcomment._author.username}
+            if (subcomment.hashcash)
+              | at
+              abbr.tooltipped(title="We require a proof-of-work for posting content on Converse.  Your computer performs a complex calculation that, once it meets a certain threshold (the difficulty score), allows your content to be posted.") difficulty #{subcomment.hashcash.split(':')[1]}
+          .description(style="clear: none;") !{ markdown(subcomment.content || '') }
+        .extra.content
+          a(href="/comments/#{subcomment._id}#comments")
+            i.comment.icon
+            | #{subcomment.stats.comments} comments
+          a(href="/comments/#{subcomment._id}#comment")
+            i.reply.icon
+            | reply
+
+        for subsubcomment in comments
+          if subsubcomment._parent.toString() == subcomment._id.toString()
+            +commentView(comments, subcomment, subsubcomment)
+
+
+
 block content
   - var post = comment._post
 
@@ -44,6 +73,7 @@ block content
 
   .ui.cards
     for subcomment in comments
+<<<<<<< HEAD
       .ui.fluid.card(style="margin-left: 2.5em;")
         .content
           - var item = subcomment;
@@ -81,6 +111,11 @@ block content
           a.ui.button(href="/comments/#{subcomment._id}#comment")
             i.reply.icon
             | reply
+=======
+      if subcomment._parent._id && subcomment._parent._id.toString() == comment._id.toString()
+        +commentView(comments, comment, subcomment)
+
+>>>>>>> recursive loading, nested comments
 
   .ui.cards
     .ui.fluid.card

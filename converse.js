@@ -183,6 +183,7 @@ var Comment = converse.define('Comment', {
     _author: { type: ObjectId, required: true, ref: 'Person', populate: ['query', 'get'] },
     _post:   { type: ObjectId, required: true , ref: 'Post', populate: ['get'] },
     _parent: { type: ObjectId, ref: 'Comment' },
+    _comments: [{ type: ObjectId, ref: 'Comment' }],
     created: { type: Date, required: true, default: Date.now },
     updated: { type: Date },
     hashcash: { type: String },
@@ -200,6 +201,12 @@ var Comment = converse.define('Comment', {
       },
       populate: '_author _parent',
       sort: '-score -created'
+      recursive: {
+        '_comments': {
+          parentId: '_parent',
+          thisId: '_id'
+        }
+      }
     }
   },
   handlers: {
