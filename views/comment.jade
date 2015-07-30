@@ -22,7 +22,7 @@ mixin commentView(comments, comment, subcomment)
           a(href="/comments/#{subcomment._id}#comment")
             i.reply.icon
             | reply
-
+ 
         for subsubcomment in comments
           if subsubcomment._parent.toString() == subcomment._id.toString()
             +commentView(comments, subcomment, subsubcomment)
