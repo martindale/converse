@@ -200,7 +200,7 @@ var Comment = converse.define('Comment', {
         return { _parent: comment._id };
       },
       populate: '_author _parent',
-      sort: '-score -created'
+      sort: '-score -created',
       recursive: {
         '_comments': {
           parentId: '_parent',
