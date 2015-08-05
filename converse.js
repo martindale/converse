@@ -401,6 +401,4 @@ converse.define('Index', {
   }
 });
 
-converse.start(function(err) {
-
-});
+module.exports = converse;
