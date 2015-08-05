@@ -362,24 +362,14 @@ Vote.on('vote', function(vote) {
       },
     } }
   ], function(err, stats) {
+    if (err) return console.error(err);
+    if (!stats.length) return;
     var meta = stats[0];
-
-    console.log('id:', vote._target);
-    console.log('err:', err);
-    console.log('stats:', stats);
 
     opts[ vote.context ].get({ _id: vote._target }, function(err, item) {
       var hotness = hotScore(meta.ups, meta.downs, item.created);
       var wilson = wilsonScore(meta.ups, meta.downs);
 
-      console.log('date:', item.created);
-      console.log('WE HAVE ARRIVED:', meta);
-      console.log('hot score:', hotness);
-      console.log('wilson score:', wilson);
-
-
-      if (err) return console.error(err);
-      if (!stats.length) return;
       opts[ vote.context ].patch({
         _id: vote._target
       }, [
