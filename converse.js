@@ -328,9 +328,18 @@ Vote.on('vote', function(vote) {
   function hotScore(ups, downs, date) {
     var decay = 45000;
     var s = ups - downs;
+
+    if (s > 0) {
+      var sign = 1;
+    } else if (s < 0) {
+      var sign = -1;
+    } else {
+      var sign = 0;
+    }
+
     var order = Math.log(Math.max(Math.abs(s), 1)) / Math.LN10;
     var secAge = (Date.now() - date.getTime()) / 1000;
-    return order - secAge / decay;
+    return sign * order - secAge / decay;
   }
 
   function wilsonScore(ups, downs) {
