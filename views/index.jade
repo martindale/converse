@@ -1,6 +1,10 @@
 extends layouts/default
 
 block content
+  .ui.message
+    .header Please Note
+    p The features you see here are not necessarily part of the default converse codebase.  These are largely UI experiments with the sole intent of getting a feel for what the features would be like once deployed to some other network.  You should consider what you see here as functional mockups for something more complete, like <a href="https://github.com/dattnetwork">DATT</a>.
+    p converse itself is simply a prototype discussion forum built with <a href="https://github.com/martindale/maki">Maki</a>, and is intended to be a starting place for others.
   .ui.cards
     include partials/post-list
 
