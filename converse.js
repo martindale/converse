@@ -53,7 +53,7 @@ var Person = converse.define('Person', {
         return { _author: person._id };
       },
       populate: '_author _document',
-      sort: '-score -created'
+      sort: '-created'
     },
     'Save': {
       filter: function() {
@@ -95,6 +95,8 @@ var Post = converse.define('Post', {
     score:       { type: Number , required: true , default: 0 },
     _document:     { type: ObjectId , ref: 'Document', populate: ['get', 'query'] },
     stats:       {
+      wilson:    { type: Number , default: 0 },
+      hotness:   { type: Number , default: 0 },
       comments:  { type: Number , default: 0 },
     },
     attribution: {
@@ -108,7 +110,7 @@ var Post = converse.define('Post', {
         return { _post: post._id , _parent: { $exists: false } };
       },
       populate: '_author _parent',
-      sort: '-score -created'
+      sort: '-stats.wilson'
     }
   },
   icon: 'pin'
@@ -171,8 +173,6 @@ Document.pre('create', function(next, done) {
     document.description = document.description || metadata.openGraph.description || metadata.general.description;
     document.image = metadata.openGraph.image;
 
-
-
     console.log('okay, saved:', document);
     next(err);
   });
@@ -189,7 +189,11 @@ var Comment = converse.define('Comment', {
     content: { type: String, min: 1 },
     score: { type: Number , required: 0 , default: 0 },
     stats: {
-      comments: { type: Number , default: 0 }
+      wilson:   { type: Number , default: 0 },
+      hotness:  { type: Number , default: 0 },
+      comments: { type: Number , default: 0 },
+      gildings: { type: Number , default: 0 },
+      gilded:   { type: Number , default: 0 },
     }
   },
   requires: {
@@ -321,21 +325,69 @@ Vote.on('vote', function(vote) {
     'comment': Comment
   };
 
+  function hotScore(ups, downs, date) {
+    var decay = 45000;
+    var s = ups - downs;
+
+    if (s > 0) {
+      var sign = 1;
+    } else if (s < 0) {
+      var sign = -1;
+    } else {
+      var sign = 0;
+    }
+
+    var order = Math.log(Math.max(Math.abs(s), 1)) / Math.LN10;
+    var secAge = (Date.now() - date.getTime()) / 1000;
+    return sign * order - secAge / decay;
+  }
+
+  function wilsonScore(ups, downs) {
+    var z = 1.96;
+    var n = ups + downs;
+    if (n === 0) {
+      return 0;
+    }
+
+    var p = ups / n;
+    var zzfn = z*z / (4*n);
+    return (p + 2*zzfn - z*Math.sqrt((zzfn / n + p*(1 - p))/n)) / (1 + 4*zzfn);
+  }
+
   Vote.Model.aggregate([
     { $match: { _target: new UUID(vote._target) } },
     { $group: {
       _id: '$_target',
-      score: { $sum: '$amount' }
+      score: { $sum: '$amount' },
+      ups: {
+        $sum: {
+          $cond: [ { $gte: ['$amount', 1] }, 1 , 0 ]
+        }
+      },
+      downs: {
+        $sum: {
+          $cond: [ { $lte: ['$amount', -1] }, 1 , 0 ]
+        }
+      },
     } }
   ], function(err, stats) {
     if (err) return console.error(err);
     if (!stats.length) return;
-    opts[ vote.context ].Model.update({
-      _id: vote._target
-    }, {
-      $set: { 'score': stats[0].score }
-    }, function(err) {
-      if (err) console.error(err);
+    var meta = stats[0];
+
+    opts[ vote.context ].get({ _id: vote._target }, function(err, item) {
+      var hotness = hotScore(meta.ups, meta.downs, item.created);
+      var wilson = wilsonScore(meta.ups, meta.downs);
+
+      opts[ vote.context ].patch({
+        _id: vote._target
+      }, [
+        { op: 'replace', path: '/score', value: meta.score },
+        { op: 'replace', path: '/stats/hotness', value: hotness },
+        { op: 'replace', path: '/stats/wilson', value: wilson },
+      ], function(err) {
+        if (err) console.error(err);
+      });
     });
   });
 });
@@ -396,7 +448,7 @@ converse.define('Index', {
     'Post': {
       filter: {},
       populate: '_author _document',
-      sort: '-score -created'
+      sort: '-stats.hotness'
     }
   }
 });
