@@ -13,7 +13,13 @@ var passport = new Passport({
   resource: 'Person'
 });
 
+var Mnemonic = require('maki-identity-mnemonic');
+var mnemonic = new Passport({
+  resource: 'Person'
+});
+
 converse.use( passport );
+converse.use( mnemonic );
 
 converse.use({
   extends: {
