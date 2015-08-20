@@ -18,6 +18,10 @@ block content
           if (comment.hashcash)
             | at 
             abbr.tooltipped(title="We require a proof-of-work for posting content on Converse.  Your computer performs a complex calculation that, once it meets a certain threshold (the difficulty score), allows your content to be posted.") difficulty #{comment.hashcash.split(':')[1]}
+          if (comment.stats.gildings)
+            .ui.mini.label.tooltipped(title="#{comment.stats.gildings} gilded a total of #{subcomment.stats.gilded}μ฿")
+              i.trophy.icon
+              |  #{comment.stats.gildings}
         .description(style="clear: none;") !{ markdown(comment.content || '') }
       .ui.mini.bottom.attached.buttons
         a.ui.button(href="/comments/#{comment._id}")
@@ -26,6 +30,9 @@ block content
         a.ui.button(href="#", data-intent="save")
           i.bookmark.icon
           | save
+        a.ui.button(href="#", data-intent="gild")
+          i.trophy.icon
+          | gild
         if (comment._parent)
           if (comment._parent._id)
             a.ui.button(href="/comments/#{comment._parent._id}")
@@ -35,6 +42,10 @@ block content
             a.ui.button(href="/comments/#{comment._parent}")
               i.tree.icon
               | parent
+        else
+          a.ui.button(href="/posts/#{comment._post}")
+            i.tree.icon
+            | parent
         a.ui.button(href="/comments/#{comment._id}#comments")
           i.comment.icon
           | #{comment.stats.comments} comments
@@ -58,6 +69,10 @@ block content
             if (subcomment.hashcash)
               | at 
               abbr.tooltipped(title="We require a proof-of-work for posting content on Converse.  Your computer performs a complex calculation that, once it meets a certain threshold (the difficulty score), allows your content to be posted.") difficulty #{subcomment.hashcash.split(':')[1]}
+            if (subcomment.stats.gildings)
+              .ui.mini.label.tooltipped(title="#{subcomment.stats.gildings} gilded a total of #{subcomment.stats.gilded}μ฿")
+                i.trophy.icon
+                |  #{subcomment.stats.gildings}
           .description(style="clear: none;") !{ markdown(subcomment.content || '') }
         .ui.mini.bottom.attached.buttons
           a.ui.button(href="/comments/#{subcomment._id}")
@@ -66,6 +81,9 @@ block content
           a.ui.button(href="#", data-intent="save")
             i.bookmark.icon
             | save
+          a.ui.button(href="#", data-intent="gild")
+            i.trophy.icon
+            | gild
           if (subcomment._parent)
             if (subcomment._parent._id)
               a.ui.button(href="/comments/#{subcomment._parent._id}")

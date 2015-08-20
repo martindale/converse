@@ -53,7 +53,7 @@ var Person = converse.define('Person', {
         return { _author: person._id };
       },
       populate: '_author _document',
-      sort: '-score -created'
+      sort: '-created'
     },
     'Save': {
       filter: function() {
@@ -95,7 +95,11 @@ var Post = converse.define('Post', {
     score:       { type: Number , required: true , default: 0 },
     _document:     { type: ObjectId , ref: 'Document', populate: ['get', 'query'] },
     stats:       {
+      wilson:    { type: Number , default: 0 },
+      hotness:   { type: Number , default: 0 },
       comments:  { type: Number , default: 0 },
+      gildings:  { type: Number , default: 0 },
+      gilded:    { type: Number , default: 0 },
     },
     attribution: {
       _author: { type: ObjectId , ref: 'Person', populate: ['get', 'query'] }
@@ -108,7 +112,7 @@ var Post = converse.define('Post', {
         return { _post: post._id , _parent: { $exists: false } };
       },
       populate: '_author _parent',
-      sort: '-score -created'
+      sort: '-stats.wilson'
     }
   },
   icon: 'pin'
@@ -171,8 +175,6 @@ Document.pre('create', function(next, done) {
     document.description = document.description || metadata.openGraph.description || metadata.general.description;
     document.image = metadata.openGraph.image;
 
-
-
     console.log('okay, saved:', document);
     next(err);
   });
@@ -189,7 +191,11 @@ var Comment = converse.define('Comment', {
     content: { type: String, min: 1 },
     score: { type: Number , required: 0 , default: 0 },
     stats: {
-      comments: { type: Number , default: 0 }
+      wilson:   { type: Number , default: 0 },
+      hotness:  { type: Number , default: 0 },
+      comments: { type: Number , default: 0 },
+      gildings: { type: Number , default: 0 },
+      gilded:   { type: Number , default: 0 },
     }
   },
   requires: {
@@ -285,11 +291,11 @@ var Notification = converse.define('Notification', {
             Person.Model.populate(notifications, {
               path: '_comment._author'
             }, function(err, notifications) {
-              Notification.Model.update({
-                _id: {
-                  $in: notifications.map(function(n) { return n._id; })
-                }
-              }, { $set: { status: 'read' } }, { multi: true }, function(err) {
+              Notification.patch({
+                _id: { $in: notifications.map(function(n) { return n._id; }) }
+              }, [
+                { op: 'replace', path: '/status', value: 'read' }
+              ], function(err) {
                 return res.render('notifications', {
                   notifications: notifications,
                   unreadNotifications: [] // a bit of a hack
@@ -300,6 +306,101 @@ var Notification = converse.define('Notification', {
         });
       }
     }
+  }
+});
+
+var Gilding = converse.define('Gilding', {
+  attributes: {
+    //status: { type: String , required: true , enum: ['pending', 'issued', 'failed'], default: 'pending' },
+    _user: { type: ObjectId , ref: 'Person', required: true },
+    _target: { type: ObjectId, required: true },
+    context: { type: String , enum: ['post', 'comment'] },
+    amount: { type: Number, required: true },
+  }
+});
+
+Gilding.on('gilding', function(gilding) {
+  var opts = {
+    'post': Post,
+    'comment': Comment
+  };
+
+  Gilding.Model.aggregate([
+    { $match: { _target: new UUID(gilding._target) } },
+    { $group: {
+      _id: '$_target',
+      total: { $sum: '$amount' },
+      count: { $sum: 1 }
+    } }
+  ], function(err, stats) {
+    if (err) return console.error(err);
+    if (!stats.length) return;
+    opts[ gilding.context ].patch({
+      _id: gilding._target
+    }, [
+      { op: 'replace', path: '/stats/gildings', value: stats[0].count },
+      { op: 'replace', path: '/stats/gilded', value: stats[0].total }
+    ], function(err) {
+      if (err) console.error(err);
+    });
+  });
+});
+
+Gilding.post('create', function() {
+  var gilding = this;
+  // NOTE: the only other time a vote event is emitted is when a vote is
+  // updated in pre:create (see below)
+  Gilding.emit('gilding', gilding);
+});
+
+// NOTE: this is strikingly similar to how the pre:create hook for Vote works,
+// and probably deserves some consolidation.  We'll also need atomic operations,
+// if not a full-on linked-list/blockchain-based accounting system.
+Gilding.pre('create', function(next, finalize) {
+  var gilding = this;
+  var COST = 50;
+
+  async.waterfall([
+    deductFromUser,
+    addToUser
+  ], function(err, results) {
+    if (err) return finalize(null, err);
+    next();
+  });
+
+  function deductFromUser(done) {
+    Person.get({ _id: gilding._user }, function(err, sender) {
+      if (err) return done(err);
+      // TODO: better error handling across Maki
+      if (sender.balance - COST <= 0) return done({ error: 'insufficient balance' });
+
+      Person.Model.update({
+        _id: gilding._user
+      }, {
+        $inc: { 'balance': -COST }
+      }, function(err) {
+        return done(err);
+      });
+    });
+  }
+
+  function addToUser(done) {
+    var Resource;
+    if (gilding.context === 'post') {
+      Resource = Post;
+    } else if (gilding.context === 'comment') {
+      Resource = Comment;
+    }
+
+    Resource.get({ _id: gilding._target }, function(err, resource) {
+      Person.Model.update({
+        _id: resource._author
+      }, {
+        $inc: { 'balance': COST }
+      }, function(err) {
+        return done(err);
+      });
+    });
   }
 });
 
@@ -314,63 +415,156 @@ var Vote = converse.define('Vote', {
 });
 
 Vote.on('vote', function(vote) {
-  console.log('vote event!');
-
   var opts = {
     'post': Post,
     'comment': Comment
   };
 
+  function hotScore(ups, downs, date) {
+    var decay = 45000;
+    var s = ups - downs;
+    var order = Math.log(Math.max(Math.abs(s), 1)) / Math.LN10;
+    var secAge = (Date.now() - date.getTime()) / 1000;
+    return order - secAge / decay;
+  }
+
+  function wilsonScore(ups, downs) {
+    var z = 1.96;
+    var n = ups + downs;
+    if (n === 0) {
+      return 0;
+    }
+
+    var p = ups / n;
+    var zzfn = z*z / (4*n);
+    return (p + 2*zzfn - z*Math.sqrt((zzfn / n + p*(1 - p))/n)) / (1 + 4*zzfn);
+  }
+
   Vote.Model.aggregate([
     { $match: { _target: new UUID(vote._target) } },
     { $group: {
       _id: '$_target',
-      score: { $sum: '$amount' }
+      score: { $sum: '$amount' },
+      ups: {
+        $sum: {
+          $cond: [ { $gte: ['$amount', 1] }, 1 , 0 ]
+        }
+      },
+      downs: {
+        $sum: {
+          $cond: [ { $lte: ['$amount', -1] }, 1 , 0 ]
+        }
+      },
     } }
   ], function(err, stats) {
     if (err) return console.error(err);
     if (!stats.length) return;
-    opts[ vote.context ].Model.update({
-      _id: vote._target
-    }, {
-      $set: { 'score': stats[0].score }
-    }, function(err) {
-      if (err) console.error(err);
+    var meta = stats[0];
+
+    opts[ vote.context ].get({ _id: vote._target }, function(err, item) {
+      var hotness = hotScore(meta.ups, meta.downs, item.created);
+      var wilson = wilsonScore(meta.ups, meta.downs);
+
+      opts[ vote.context ].patch({
+        _id: vote._target
+      }, [
+        { op: 'replace', path: '/score', value: meta.score },
+        { op: 'replace', path: '/stats/hotness', value: hotness },
+        { op: 'replace', path: '/stats/wilson', value: wilson },
+      ], function(err) {
+        if (err) console.error(err);
+      });
     });
   });
 });
 
-Vote.pre('create', function(next, done) {
+Vote.post('create', function() {
   var vote = this;
+  // NOTE: the only other time a vote event is emitted is when a vote is
+  // updated in pre:create (see below)
+  Vote.emit('vote', vote);
+});
+
+Vote.pre('create', function(next, finalize) {
+  var vote = this;
+  var COST = 1; // maybe this will eventually be per-sub or per-tag, whatever
+                // the group ends up deciding.
 
   if (vote.sentiment == '1') {
-    vote.amount = 1;
+    vote.amount = COST;
   } else if (vote.sentiment == '-1') {
-    vote.amount = -1;
+    vote.amount = -COST;
   } else {
     return done('No such value.');
   }
 
-  Vote.query({
-    _user: vote._user,
-    _target: vote._target
-  }, function(err, votes) {
-    if (err) return done(err);
-    if (!votes.length) {
-      Vote.emit('vote', vote);
-      return next();
+  async.waterfall([
+    applyVote,
+    deductFromUser,
+    addToUser
+  ], function(err, results) {
+    // Note: counterintuitive.  Err here is likely the vote, if it's an update
+    if (err) return finalize(null, err);
+    next();
+  });
+
+  function deductFromUser(done) {
+    Person.get({ _id: vote._user }, function(err, sender) {
+      if (err) return done(err);
+      // TODO: better error handling across Maki
+      if (sender.balance - COST <= 0) return done({ error: 'insufficient balance' });
+
+      Person.Model.update({
+        _id: vote._user
+      }, {
+        $inc: { 'balance': -COST }
+      }, function(err) {
+        return done(err);
+      });
+    });
+  }
+
+  function addToUser(done) {
+    var Resource;
+    if (vote.context === 'post') {
+      Resource = Post;
+    } else if (vote.context === 'comment') {
+      Resource = Comment;
     }
 
-    Vote.Model.update({
+    Resource.get({ _id: vote._target }, function(err, resource) {
+      Person.Model.update({
+        _id: resource._author
+      }, {
+        $inc: { 'balance': COST }
+      }, function(err) {
+        return done(err);
+      });
+    });
+  }
+
+  function applyVote(done) {
+    Vote.query({
       _user: vote._user,
       _target: vote._target
-    }, {
-      $set: { amount: vote.amount }
-    }, function(err) {
-      Vote.emit('vote', vote);
-      return done(null, vote);
+    }, function(err, votes) {
+      if (err) return done(err);
+      if (!votes.length) {
+        return done();
+      }
+
+      Vote.patch({
+        _user: vote._user,
+        _target: vote._target
+      }, [{ op: 'replace', path: '/amount', value: vote.amount }], function(err) {
+        // NOTE: if you change this, beware of consequences – the vote scoring
+        // only updates on:vote (see above)
+        Vote.emit('vote', vote);
+        return done(vote);
+      });
     });
-  });
+  }
+
 });
 
 var Save = converse.define('Save', {
@@ -396,7 +590,7 @@ converse.define('Index', {
     'Post': {
       filter: {},
       populate: '_author _document',
-      sort: '-score -created'
+      sort: '-stats.hotness'
     }
   }
 });
