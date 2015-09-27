@@ -96,7 +96,7 @@ var Person = converse.define('Person', {
 
 var Post = converse.define('Post', {
   auth: {
-    'create': ['user']    
+    'create': ['user']   
   },
   attributes: {
     created:     { type: Date, required: true, default: Date.now },
@@ -195,7 +195,7 @@ Document.pre('create', function(next, done) {
 
 var Comment = converse.define('Comment', {
   auth: {
-    'create': ['user']    
+    'create': ['user']
   },
   attributes: {
     _author: { type: ObjectId, required: true, ref: 'Person', populate: ['query', 'get'] },
@@ -323,7 +323,7 @@ var Notification = converse.define('Notification', {
 
 var Vote = converse.define('Vote', {
   auth: {
-    'create': ['user']    
+    'create': ['user']
   },
   attributes: {
     //status: { type: String , required: true , enum: ['pending', 'issued', 'failed'], default: 'pending' },
@@ -396,7 +396,7 @@ Vote.pre('create', function(next, done) {
 
 var Save = converse.define('Save', {
   auth: {
-    'create': ['user']    
+    'create': ['user']
   },
   attributes: {
     _user: { type: ObjectId , required: true , ref: 'Person', populate: ['query', 'get'] },
