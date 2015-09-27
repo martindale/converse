@@ -13,8 +13,17 @@ var passport = new Passport({
   resource: 'Person'
 });
 
-converse.use( passport );
+var Auth = require('maki-auth-simple');
+var auth = new Auth({
+  resource: 'Person',
+  roles: ['user', 'admin'],
+  default: ['user']
+});
 
+converse.use( passport );
+converse.use( auth );
+
+// TODO: export this to a plugin
 converse.use({
   extends: {
     services: {
@@ -35,6 +44,9 @@ converse.use({
 });
 
 var Person = converse.define('Person', {
+  auth: {
+    patch: ['admin']
+  },
   attributes: {
     username: { type: String , max: 35 , required: true , slug: true },
     password: { type: String , max: 70 , masked: true },
@@ -83,6 +95,9 @@ var Person = converse.define('Person', {
 }); */
 
 var Post = converse.define('Post', {
+  auth: {
+    'create': ['user']    
+  },
   attributes: {
     created:     { type: Date, required: true, default: Date.now },
     hashcash:    { type: String },
@@ -179,6 +194,9 @@ Document.pre('create', function(next, done) {
 });
 
 var Comment = converse.define('Comment', {
+  auth: {
+    'create': ['user']    
+  },
   attributes: {
     _author: { type: ObjectId, required: true, ref: 'Person', populate: ['query', 'get'] },
     _post:   { type: ObjectId, required: true , ref: 'Post', populate: ['get'] },
@@ -304,6 +322,9 @@ var Notification = converse.define('Notification', {
 });
 
 var Vote = converse.define('Vote', {
+  auth: {
+    'create': ['user']    
+  },
   attributes: {
     //status: { type: String , required: true , enum: ['pending', 'issued', 'failed'], default: 'pending' },
     _user: { type: ObjectId , ref: 'Person', required: true },
@@ -374,6 +395,9 @@ Vote.pre('create', function(next, done) {
 });
 
 var Save = converse.define('Save', {
+  auth: {
+    'create': ['user']    
+  },
   attributes: {
     _user: { type: ObjectId , required: true , ref: 'Person', populate: ['query', 'get'] },
     _post: { type: ObjectId , required: true , ref: 'Post', populate: ['query', 'get'] },
