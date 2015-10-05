@@ -9,6 +9,16 @@
                                                                           ~ Eric
 */
 
+var fabric = new Fabric();
+fabric.on('start', function() {
+  console.log('started!');
+});
+fabric.on('error', function(err) {
+  console.error(err);
+});
+fabric.start();
+
+
 // TODO: not modify prototypes?  hueh.
 String.prototype.hexEncode = function() {
   var hex, i;

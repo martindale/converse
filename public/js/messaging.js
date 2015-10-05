@@ -1,28 +1,37 @@
-var coalescent = require('coalescent');
+import Emitter from 'Emitter';
+import Elliptic from 'Elliptic';
 
-var app        = coalescent({
-  clientOnly: true,
-  seeds: [
-    'localhost:1337'
-  ]
+let ec = Elliptic('secp256k1');
+
+class Fabric extends Emitter {
+  constructor(options) {
+    super.constructor();
+    this.options = options;
+    this.seeds = options.seeds || ['ws://localhost:20500'];
+    this.peers = {};
+  }
+
+  _addPeer(peer) {
+    this.peers[  ]
+  }
+
+  start() {
+    this.p = P.create();
+    this.onramp = this.p.connect(seeds[0]);
+  }
+}
+
+onramp.on('message', function(peerAddress){
+ var peer = onramp.connect(peerAddress);
+
+  peer.on('open', function(){
+    peer.send('ping?');
+  });
+
+  peer.on('message', function(message){
+    setTimeout(function(){
+      console.log('from peer: ' + message);
+      peer.send('ping?');
+    }, 1000);
+  });
 });
-
-// transform streams as middleware
-app.use(coalescent.smartrelay()); // relay received messages to other peers
-app.use(coalescent.courier()); // parse incoming messages
-app.use(coalescent.router()); // route parsed messages to handlers
-
-// handle errors
-app.on('error', function(err, socket) {
-  console.log(err);
-});
-
-app.on('inv', function(inv) {
-  console.log('inv message!', inv);
-});
-
-app.on('transaction', function(t) {
-  console.log('transaction!', t);
-});
-
-app.broadcast('inv');

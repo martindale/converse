@@ -32,7 +32,7 @@ module.exports = {
   },
   services: {
     http: {
-      port: process.env.CONVERSE_HTTP_PORT || 9200
+      port: process.env.CONVERSE_HTTP_PORT || 9201
     }
   },
   database: {
