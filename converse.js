@@ -116,6 +116,7 @@ var Post = converse.define('Post', {
 
 Post.pre('create', function(next, done) {
   var post = this;
+  if (!post.hashcash) return done('Proof of Work is required to post.');
   if (!post.link) return next();
   if (!post.document) return next();
 
